@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Météo</title>
+    <link rel="stylesheet" href="../static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <div id ='main-logo'>
+        <img src="{{ url_for('static', filename='weather_app.png') }}" alt="App logo" width="15%" height="auto" >
+    </div>
+
+
+    <div class="container">
+        <input type="text" id="citySearch" placeholder="Chercher une ville...">
+        <select id="citySelect"></select>
+        <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+
+
+{#        <form method="post" action="/">#}
+{#            <label for="city">City:</label>#}
+{#            <input type="text" id="city" name="city" required>#}
+{#            <button type="submit">Search</button>#}
+{#        </form>#}
+
+    <div class="forecast-container">
+        {% for day in weather_data %}
+
+            <div class="forecast-card">
+                <img src="{{ url_for('static', filename= day.icon) }}" alt="App logo" ><br>
+                <h2><strong>{{ day.temp_day }}°C</strong></h2> <br>
+                <h3>{{ day.date }}</h3><br>
+                {{ day.description }}<br>
+                <strong>RealFeel:</strong> {{ day.feels_like }}°C<br>
+                <strong>Min:</strong> {{ day.temp_min }}°C<br>
+                <strong>Max:</strong> {{ day.temp_max }}°C<br>
+
+            </div>
+
+        {% endfor %}
+        <select id="citySelect"></select>
+    </div>
+
+    </div>
+</body>
+
+</html>

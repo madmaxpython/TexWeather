@@ -1,0 +1,95 @@
+from flask import Flask, render_template, request, jsonify
+import requests
+import datetime
+import yaml
+from cachetools import TTLCache
+from utils import date_formatter
+app = Flask(__name__, static_folder="static")
+
+with open('config.yaml', 'r') as config_file:
+    config = yaml.safe_load(config_file.read())
+API_key=config['API_key']
+
+class API:
+    def __init__(self, API_key):
+        self.URL = 'https://api.openweathermap.org/'
+        self.cache = TTLCache(maxsize=10, ttl=600)
+        self.API_key = API_key
+
+    def check_request(self, request):
+
+        if request in self.cache:
+            print('Loading request from cache')
+            return self.cache[request]
+
+        API_request = requests.get(f"{self.URL}{request}")
+
+        if not API_request.status_code == 200:
+            print(f"Failed to fetch data in getting temperature. Status code: {API_request.status_code}")
+
+        else:
+            response_data = API_request.json()
+            self.cache[request] = response_data
+            return response_data
+
+    def get_location(self, city_name):
+        response = self.check_request(f"geo/1.0/direct?q={city_name}&limit=5&appid={self.API_key}")
+        options = {}
+        for cities in response :
+            options[f"{cities['name']}, {cities['state']}, {cities['country']}"] =  {"lat":cities['lat'], "lon":cities['lon']}
+
+        lat, lon = response[0].get('lat'), response[0].get('lon')
+        return lat, lon, options
+
+    def get_weather(self,
+                    lat, lon,
+                    units='metric',
+                    exclude ='minutely,hourly,alerts'
+                    ):
+
+        response = self.check_request(
+            f"data/3.0/onecall?lat={lat}&lon={lon}&appid={self.API_key}&units={units}&exclude={exclude}")
+        #response = {'lat': 45.5032, 'lon': -73.5698, 'timezone': 'America/Toronto', 'timezone_offset': -14400, 'current': {'dt': 1691358635, 'sunrise': 1691315024, 'sunset': 1691367399, 'temp': 26.34, 'feels_like': 26.34, 'pressure': 1015, 'humidity': 41, 'dew_point': 12.05, 'uvi': 0.88, 'clouds': 0, 'visibility': 10000, 'wind_speed': 5.14, 'wind_deg': 280, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}]}, 'daily': [{'dt': 1691341200, 'sunrise': 1691315024, 'sunset': 1691367399, 'moonrise': 1691376780, 'moonset': 1691336820, 'moon_phase': 0.69, 'summary': 'Expect a day of partly cloudy with clear spells', 'temp': {'day': 25.29, 'min': 15.37, 'max': 26.34, 'night': 19.84, 'eve': 25.67, 'morn': 16.18}, 'feels_like': {'day': 25, 'night': 19.71, 'eve': 25.49, 'morn': 15.89}, 'pressure': 1014, 'humidity': 43, 'dew_point': 11.83, 'wind_speed': 4.77, 'wind_deg': 242, 'wind_gust': 9.37, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}], 'clouds': 1, 'pop': 0, 'uvi': 7.8}, {'dt': 1691427600, 'sunrise': 1691401496, 'sunset': 1691453715, 'moonrise': 1691464500, 'moonset': 1691427780, 'moon_phase': 0.72, 'summary': 'Expect a day of partly cloudy with rain', 'temp': {'day': 17.36, 'min': 16.31, 'max': 20.72, 'night': 16.58, 'eve': 16.83, 'morn': 17.01}, 'feels_like': {'day': 17.34, 'night': 16.83, 'eve': 17.08, 'morn': 16.75}, 'pressure': 1012, 'humidity': 84, 'dew_point': 14.74, 'wind_speed': 4.21, 'wind_deg': 86, 'wind_gust': 10.47, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'}], 'clouds': 100, 'pop': 1, 'rain': 1.59, 'uvi': 2.72}, {'dt': 1691510400, 'sunrise': 1691487969, 'sunset': 1691540029, 'moonrise': 1691552460, 'moonset': 1691518680, 'moon_phase': 0.75, 'summary': 'Expect a day of partly cloudy with rain', 'temp': {'day': 18.56, 'min': 15.37, 'max': 19.81, 'night': 15.37, 'eve': 16.9, 'morn': 17.05}, 'feels_like': {'day': 19.03, 'night': 15.5, 'eve': 17.2, 'morn': 17.4}, 'pressure': 1001, 'humidity': 98, 'dew_point': 18.31, 'wind_speed': 3.21, 'wind_deg': 10, 'wind_gust': 7.72, 'weather': [{'id': 502, 'main': 'Rain', 'description': 'heavy intensity rain', 'icon': '10d'}], 'clouds': 100, 'pop': 1, 'rain': 33.65, 'uvi': 0.63}, {'dt': 1691596800, 'sunrise': 1691574442, 'sunset': 1691626342, 'moonrise': 0, 'moonset': 1691609460, 'moon_phase': 0.79, 'summary': 'Expect a day of partly cloudy with rain', 'temp': {'day': 16.91, 'min': 14.34, 'max': 22.93, 'night': 18.13, 'eve': 22.45, 'morn': 14.47}, 'feels_like': {'day': 16.72, 'night': 18.4, 'eve': 22.55, 'morn': 14.43}, 'pressure': 1006, 'humidity': 79, 'dew_point': 13.11, 'wind_speed': 3.93, 'wind_deg': 290, 'wind_gust': 8.17, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'}], 'clouds': 90, 'pop': 0.58, 'rain': 1.63, 'uvi': 7.15}, {'dt': 1691683200, 'sunrise': 1691660915, 'sunset': 1691712653, 'moonrise': 1691640660, 'moonset': 1691699940, 'moon_phase': 0.82, 'summary': 'Expect a day of partly cloudy with rain', 'temp': {'day': 21.91, 'min': 16.27, 'max': 22.3, 'night': 17.7, 'eve': 18.96, 'morn': 16.27}, 'feels_like': {'day': 22.01, 'night': 18.03, 'eve': 19.29, 'morn': 16.46}, 'pressure': 1004, 'humidity': 71, 'dew_point': 16.37, 'wind_speed': 3.91, 'wind_deg': 250, 'wind_gust': 10.15, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'}], 'clouds': 100, 'pop': 0.84, 'rain': 1.28, 'uvi': 4.88}, {'dt': 1691769600, 'sunrise': 1691747388, 'sunset': 1691798963, 'moonrise': 1691729400, 'moonset': 1691790060, 'moon_phase': 0.85, 'summary': 'Expect a day of partly cloudy with rain', 'temp': {'day': 19.96, 'min': 16.44, 'max': 22.72, 'night': 16.44, 'eve': 22.72, 'morn': 17.21}, 'feels_like': {'day': 19.58, 'night': 16.18, 'eve': 22.41, 'morn': 17.52}, 'pressure': 1007, 'humidity': 60, 'dew_point': 12.08, 'wind_speed': 5.16, 'wind_deg': 275, 'wind_gust': 9.46, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}], 'clouds': 2, 'pop': 0.15, 'uvi': 0.9}, {'dt': 1691856000, 'sunrise': 1691833861, 'sunset': 1691885272, 'moonrise': 1691818680, 'moonset': 1691879520, 'moon_phase': 0.89, 'summary': 'You can expect partly cloudy in the morning, with rain in the afternoon', 'temp': {'day': 19.17, 'min': 13.72, 'max': 22.35, 'night': 17.45, 'eve': 20.49, 'morn': 13.72}, 'feels_like': {'day': 18.87, 'night': 17.78, 'eve': 20.55, 'morn': 13.21}, 'pressure': 1014, 'humidity': 66, 'dew_point': 12.49, 'wind_speed': 2.74, 'wind_deg': 43, 'wind_gust': 8.64, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'}], 'clouds': 100, 'pop': 0.92, 'rain': 2.53, 'uvi': 1}, {'dt': 1691942400, 'sunrise': 1691920334, 'sunset': 1691971579, 'moonrise': 1691908440, 'moonset': 1691968440, 'moon_phase': 0.92, 'summary': 'You can expect rain in the morning, with partly cloudy in the afternoon', 'temp': {'day': 19.21, 'min': 14.93, 'max': 19.32, 'night': 14.93, 'eve': 19.16, 'morn': 18.55}, 'feels_like': {'day': 19.64, 'night': 14.49, 'eve': 19.09, 'morn': 19.02}, 'pressure': 1008, 'humidity': 94, 'dew_point': 18.12, 'wind_speed': 5.8, 'wind_deg': 270, 'wind_gust': 9.53, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10d'}], 'clouds': 100, 'pop': 1, 'rain': 4.64, 'uvi': 1}]}
+        nb_day = len(response.get('daily'))
+        output = []
+
+        for day in range(0, nb_day):
+            response_day = response.get('daily')[day]
+            output.append({
+                'date' : date_formatter(str(datetime.datetime.fromtimestamp(response_day.get('dt')))[0:10]),
+                'temp_day': round(response_day.get('temp').get('day'), 1),
+                'temp_min': round(response_day.get('temp').get('min'), 1),
+                'temp_max': round(response_day.get('temp').get('max'), 1),
+                'feels_like': round(response_day.get('feels_like').get('day'), 1),
+                'description': response_day.get('weather')[0].get('description').title(),
+                'icon': f"{response_day.get('weather')[0].get('icon')}.png"
+            })
+        return output
+
+weather_API = API(API_key)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        city = request.form['city']
+        lat, lon, options = weather_API.get_location(city)
+        weather_data = weather_API.get_weather(lat, lon)
+        return render_template('index.html', weather_data=weather_data)
+    return render_template('index.html', weather_data=[])
+
+@app.route('/weather')
+def get_weather():
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    weather_data = weather_API.get_weather(lat=lat, lon=lon)
+    return jsonify(weather_data)
+
+
+@app.route('/search')
+def search_city():
+    search_term = request.args.get('term')
+    lat, lon, options = API(API_key).get_location(search_term)
+    return jsonify(options)
+
+if __name__ == '__main__':
+    app.run()

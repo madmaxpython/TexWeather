@@ -1,0 +1,58 @@
+
+body {
+    font-family: 'Open Sans', sans-serif; /* Utilisation de la police "Open Sans" */
+    background: #afc8d5;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#citySearch{
+    width: 200px;
+    height: 30px;
+    border: 0;
+    border-radius: 5px;
+    text-align: left;
+    margin-bottom: 15px;
+    padding-left: 5px;
+}
+#citySelect{
+    width: 205px;
+    height: 30px;
+    border: 0;
+    border-radius: 5px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.hide {
+  display: none;
+}
+
+
+.forecast-container {
+    display: flex;
+    justify-content: flex-start; /* Aligner les cartes à gauche */
+    overflow-x: auto; /* Activer la barre de défilement horizontale si nécessaire */
+
+}
+
+.forecast-card {
+    flex: 0 0 calc(20% - 20px); /* Chaque carte prend 20% de la largeur disponible */
+    margin: 10px; /* Espacement entre les cartes */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    box-sizing: border-box;
+    box-shadow: .1rem .1rem 1rem rgba(0, 0, 0, 0.6);
+    background: linear-gradient(45deg, #7fb8d5, #b3d9ee);
+
+}
+
+
+
+
+
